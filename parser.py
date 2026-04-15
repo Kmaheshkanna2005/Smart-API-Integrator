@@ -1,66 +1,74 @@
 import os
 import json
-from google import genai
+from openai import OpenAI
 from dotenv import load_dotenv
+import traceback
 
-# Load API Key from .env
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not API_KEY:
-    raise ValueError("GEMINI_API_KEY not found. Please check your .env file.")
+# Setup Groq Client
+client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
-# Initialize the modern client
-client = genai.Client(api_key=API_KEY)
-
-def analyze_api_data(scraped_data, user_context):
-    """
-    Takes raw scraped text and converts it into a structured technical map
-    using Gemini 2.0 Flash.
-    """
+# Added 'url' to the function arguments so the prompt can use it!
+def analyze_api_data(scraped_data, user_context, target_url):
     prompt = f"""
-    SYSTEM: You are a Senior Backend Engineer. Your task is to extract API integration details.
+    Scraped Content: {scraped_data}
+    Target URL: {target_url}
+    Goal: {user_context}
     
-    DATA FROM DOCS:
-    {scraped_data}
+    Instructions:
+    1. If the goal uses words like 'fetch', 'get', 'list', or 'show', use GET. 
+    2. If the goal uses words like 'create', 'post', 'send', or 'add', use POST.
+    3. IMPORTANT: If the user provides an ID but NO new data to change, it is a GET request.
+    4. ONLY use POST/PUT if the user explicitly wants to save or change information.
     
-    DEVELOPER'S GOAL:
-    {user_context}
-    
-    INSTRUCTIONS:
-    Identify the technical details needed to achieve the goal. 
-    Return ONLY a valid JSON object with these keys:
-    - base_url: (The root API URL)
-    - endpoint: (The specific path)
-    - method: (GET, POST, etc.)
-    - parameters: (List of keys required in the body or query)
-    - auth_type: (e.g., 'none', 'api_key', 'bearer_token')
-    
-    JSON ONLY. NO MARKDOWN. NO EXPLANATION.
+    Return ONLY JSON:
+    {{
+        "base_url": "...",
+        "endpoint": "...",
+        "method": "POST or GET or PUT or DELETE or PATCH",
+        "body_template": {{ "field1": "value", "field2": "value" }}, # Only if POST/PUT
+        "auth_type": "None",
+        "auth_header_name": "Authorization"
+    }}
     """
 
     try:
-        response = client.models.generate_content(
-            model='gemini-2.0-flash', 
-            contents=prompt
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a specialized JSON generator. Never speak, only output JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0
         )
         
-        # Clean the response text (remove ```json wrappers if AI adds them)
-        clean_json = response.text.replace('```json', '').replace('```', '').strip()
-        return json.loads(clean_json)
+        raw_content = response.choices[0].message.content.strip()
         
+        # Cleaning Markdown formatting if present
+        if "```" in raw_content:
+            raw_content = raw_content.split("```")[1]
+            if raw_content.startswith("json"):
+                raw_content = raw_content[4:].strip()
+        
+        return json.loads(raw_content)
+
+    except json.JSONDecodeError:
+        return {"error": f"AI returned invalid JSON: {raw_content}"}
     except Exception as e:
-        return {"error": f"AI Analysis failed: {str(e)}"}
+        traceback.print_exc() 
+        return {"error": str(e)}
 
 if __name__ == "__main__":
-    # This simulates the data we got from scraper.py
-    sample_scraped_data = {
-        'headings': ['Resources', 'Routes', 'GET /posts'], 
-        'code_samples': ["fetch('[https://jsonplaceholder.typicode.com/posts](https://jsonplaceholder.typicode.com/posts)')"]
-    }
+    # Test values
+    sample_data = {'headings': ['GET /users'], 'code_samples': ["https://jsonplaceholder.typicode.com/users"]}
+    context = "I want to fetch a single user by their ID."
+    test_url = "https://jsonplaceholder.typicode.com"
     
-    user_intent = "I want to create a new blog post."
-    
-    print("--- Starting AI Analysis ---")
-    result = analyze_api_data(sample_scraped_data, user_intent)
+    print("--- Starting Groq Analysis ---")
+    # Pass all 3 arguments now!
+    result = analyze_api_data(sample_data, context, test_url)
     print(json.dumps(result, indent=4))

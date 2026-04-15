@@ -1,3 +1,6 @@
+.env
 .venv/
 __pycache__/
-.env
+generated_api_client.py
+generated_api_client.js
+*.pyc
