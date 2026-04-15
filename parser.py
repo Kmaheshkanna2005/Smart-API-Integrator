@@ -25,6 +25,8 @@ def analyze_api_data(scraped_data, user_context, target_url):
     3. IMPORTANT: If the user provides an ID but NO new data to change, it is a GET request.
     4. ONLY use POST/PUT if the user explicitly wants to save or change information.
     
+    "CRITICAL: If the documentation does not explicitly show an 'Authorization' header as mandatory, set 'auth_type' to 'None' and 'auth_header_name' to null. Do not guess authentication."
+    
     Return ONLY JSON:
     {{
         "base_url": "...",
