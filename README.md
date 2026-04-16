@@ -7,7 +7,7 @@
 
 ### 1. Prerequisites
 * **Python 3.8+**
-* **Google Gemini API Key** (Required for the AI Parsing logic)
+* **GROQ API Key** (Required for the AI Parsing logic)
 * **Node.js** (Optional, to run generated JavaScript)
 * **Java 11+** (Optional, to compile generated Java code)
 
@@ -30,7 +30,7 @@ pip install streamlit requests beautifulsoup4 google-generativeai
 ### 3. Environment Configuration
 Create a `.env` file in the root directory or enter your key directly into the Streamlit sidebar:
 ```text
-GEMINI_API_KEY=your_actual_key_here
+GROQ_API_KEY=your_actual_key_here
 ```
 
 ### 4. Running the App
@@ -51,7 +51,7 @@ streamlit run app.py
 
 ## 📦 Dependencies
 * **Streamlit:** For the web-based user interface.
-* **Google Generative AI:** To parse unstructured HTML into structured API metadata.
+* **GROQ Generative AI:** To parse unstructured HTML into structured API metadata.
 * **BeautifulSoup4:** For web scraping documentation content.
 * **Requests:** For handling Python-based API communication and testing.
 
@@ -65,7 +65,7 @@ My approach focuses on **Dynamic Metadata Mapping**. Instead of hard-coding supp
 The tool scrapes the documentation URL and strips away unnecessary HTML tags (scripts, styles) to keep only the relevant text and table data, ensuring the AI doesn't hit token limits.
 
 ### 2. AI Schema Inference
-I use an LLM (Gemini) to act as a "Technical Architect." It analyzes the scraped text to find:
+I use an LLM (GROQ) to act as a "Technical Architect." It analyzes the scraped text to find:
 * The **Base URL** and specific **Endpoint**.
 * The required **HTTP Method** (GET/POST/PUT/DELETE).
 * The **Authentication Strategy** (Bearer, API-Key, or Public).
